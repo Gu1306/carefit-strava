@@ -3,7 +3,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from flask import Flask, redirect, request, jsonify
-from config import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI
+
+CLIENT_ID = os.environ.get("CLIENT_ID")
+CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
+REDIRECT_URI = os.environ.get("REDIRECT_URI")
+
 from utils import exchange_token
 
 app = Flask(__name__)
@@ -26,12 +30,16 @@ def authorize():
 
 @app.route("/debug-vars")
 def debug_vars():
-    from config import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI
     return {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
         "redirect_uri": REDIRECT_URI
     }
+
+@app.route("/env-vars")
+def env_vars():
+    return dict(os.environ)
+
 
 @app.route("/callback")
 def callback():
