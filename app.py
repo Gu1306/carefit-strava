@@ -20,14 +20,14 @@ def authorize():
     )
     return redirect(url)
 
-@app.route("/callback")
-def callback():
-    code = request.args.get("code")
-    if not code:
-        return "Erro: código não recebido", 400
-
-    token_data = exchange_token(code)
-    return jsonify(token_data)
+@app.route("/debug-vars")
+def debug_vars():
+    from config import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI
+    return {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "redirect_uri": REDIRECT_URI
+    }
 
 if __name__ == "__main__":
     import os
