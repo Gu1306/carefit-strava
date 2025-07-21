@@ -35,6 +35,23 @@ def debug_vars():
         "client_secret": CLIENT_SECRET,
         "redirect_uri": REDIRECT_URI
     }
+import requests
+
+@app.route("/activities")
+def get_activities():
+    access_token = request.args.get("access_token")  # ou use um token fixo para teste
+    if not access_token:
+        return {"error": "access_token não fornecido"}, 400
+
+    url = "https://www.strava.com/api/v3/athlete/activities"
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code != 200:
+        return {"error": "Erro ao buscar atividades", "details": response.json()}, response.status_code
+
+    return response.json()
 
 @app.route("/env-vars")
 def env_vars():
