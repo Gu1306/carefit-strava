@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, redirect, request, jsonify
 from config import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI
 from utils import exchange_token
@@ -28,6 +32,16 @@ def debug_vars():
         "client_secret": CLIENT_SECRET,
         "redirect_uri": REDIRECT_URI
     }
+
+@app.route("/callback")
+def callback():
+    code = request.args.get("code")
+    if not code:
+        return "Erro: código não recebido", 400
+
+    token_data = exchange_token(code)
+    return jsonify(token_data)
+
 
 if __name__ == "__main__":
     import os
