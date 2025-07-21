@@ -43,6 +43,28 @@ def callback():
         "data_autorizacao": datetime.utcnow().isoformat()
     }
 
+import os
+import json
+from flask import jsonify
+
+@app.route("/athletes")
+def listar_atletas():
+    caminho = "athletes"
+    if not os.path.exists(caminho):
+        return jsonify([])
+
+    atletas = []
+    for arquivo in os.listdir(caminho):
+        if arquivo.endswith(".json"):
+            with open(os.path.join(caminho, arquivo), "r", encoding="utf-8") as f:
+                dados = json.load(f)
+                atletas.append({
+                    "nome": dados.get("nome"),
+                    "access_token": dados.get("access_token")
+                })
+
+    return jsonify(atletas)
+
     # Salva em arquivo (um por atleta)
     path = f"athletes/{atleta_id}.json"
     os.makedirs("athletes", exist_ok=True)
