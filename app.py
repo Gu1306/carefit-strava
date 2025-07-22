@@ -159,15 +159,6 @@ def env_vars():
     return dict(os.environ)
 
 
-@app.route("/callback")
-def callback():
-    code = request.args.get("code")
-    if not code:
-        return "Erro: código não recebido", 400
-
-    token_data = exchange_token(code)
-    return jsonify(token_data)
-
 
 if __name__ == "__main__":
     import os
