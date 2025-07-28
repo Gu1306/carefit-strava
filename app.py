@@ -2,15 +2,13 @@ from flask import Flask, request, jsonify
 import os
 import requests
 from utils import exchange_token
+from db import save_athlete, get_connection  # importa funções novas
 
 app = Flask(__name__)
 
-# Armazenamento temporário de atletas autorizados (sem banco ainda)
-athletes_memory = []
-
 @app.route("/")
 def home():
-    return "CareFit Strava API v3"
+    return "CareFit Strava API v3 (banco de dados ativo)"
 
 @app.route("/authorize")
 def authorize():
@@ -30,17 +28,23 @@ def callback():
 
     try:
         token_data = exchange_token(code)
-        print("TOKEN RECEBIDO:")
-        print(token_data)
-        athletes_memory.append(token_data)
-        return jsonify(token_data)
+        save_athlete(token_data)  # grava no banco
+        return "Autorizado e salvo com sucesso! Você já pode fechar esta aba."
     except Exception as e:
         print("Erro no callback:", str(e))
         return f"Erro interno ao processar callback: {str(e)}", 500
 
 @app.route("/athletes")
 def list_athletes():
-    return jsonify(athletes_memory)
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT athlete_id, firstname, lastname, city, state, sex FROM athletes ORDER BY created_at DESC")
+                athletes = cur.fetchall()
+        return jsonify(athletes)
+    except Exception as e:
+        print("Erro ao listar atletas:", str(e))
+        return "Erro ao acessar o banco", 500
 
 @app.route("/activities")
 def get_activities():
