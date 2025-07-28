@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import os
+import requests
 from utils import exchange_token
 
 app = Flask(__name__)
@@ -40,6 +41,31 @@ def callback():
 @app.route("/athletes")
 def list_athletes():
     return jsonify(athletes_memory)
+
+@app.route("/activities")
+def get_activities():
+    token = request.args.get("token")
+    if not token:
+        return "Token ausente", 400
+
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(
+            "https://www.strava.com/api/v3/athlete/activities",
+            headers=headers,
+            timeout=10
+        )
+
+        if response.status_code != 200:
+            print("Erro ao buscar atividades:", response.status_code, response.text)
+            return f"Erro do Strava: {response.status_code}", 500
+
+        activities = response.json()
+        return jsonify(activities)
+
+    except Exception as e:
+        print("Erro ao buscar atividades:", str(e))
+        return f"Erro interno: {str(e)}", 500
 
 if __name__ == "__main__":
     app.run(debug=True)
