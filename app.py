@@ -4,11 +4,12 @@ from utils import exchange_token
 
 app = Flask(__name__)
 
+# Armazenamento temporário de atletas autorizados (sem banco ainda)
 athletes_memory = []
 
 @app.route("/")
 def home():
-    return "CareFit Strava API v2"
+    return "CareFit Strava API v3"
 
 @app.route("/authorize")
 def authorize():
@@ -30,6 +31,7 @@ def callback():
         token_data = exchange_token(code)
         print("TOKEN RECEBIDO:")
         print(token_data)
+        athletes_memory.append(token_data)
         return jsonify(token_data)
     except Exception as e:
         print("Erro no callback:", str(e))
