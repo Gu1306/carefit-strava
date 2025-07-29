@@ -72,6 +72,7 @@ def painel_tokens():
 @requires_auth
 def ver_atividades(token):
     try:
+        # Buscar as atividades
         headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(
             "https://www.strava.com/api/v3/athlete/activities?per_page=60",
@@ -85,37 +86,54 @@ def ver_atividades(token):
         if not atividades:
             return "Nenhuma atividade encontrada."
 
-        def formatar_atividade(t):
-            return "\n".join([
-                f"Nome: {t.get('name')}",
-                f"Distância: {round(t.get('distance', 0) / 1000, 2)} km",
-                f"Tempo de Movimento: {round(t.get('moving_time', 0) / 60, 2)} min",
-                f"Tempo Total: {round(t.get('elapsed_time', 0) / 60, 2)} min",
-                f"Tipo: {t.get('type')}",
-                f"Velocidade Média: {t.get('average_speed', '-')}",
-                f"Elevação: {t.get('total_elevation_gain', '-')} m",
-                f"Data: {t.get('start_date_local', '')}",
-                f"Temperatura Média: {t.get('average_temp', '-')}",
-                f"Frequência Cardíaca Média: {t.get('average_heartrate', '-')}",
-                f"Cadência Média: {t.get('average_cadence', '-')}",
-                f"Esforço Percebido: {t.get('perceived_exertion', '-')}",
-                f"Calorias: {t.get('calories', '-')}",
-                "-"*40
-            ])
+        # Buscar nome do atleta (opcional, extraído da primeira atividade se possível)
+        nome_atleta = atividades[0].get("athlete", {}).get("firstname", "atleta") + "_" + atividades[0].get("athlete", {}).get("lastname", "")
+        nome_atleta = nome_atleta.replace(" ", "_")
 
-        linhas_txt = [formatar_atividade(t) for t in atividades]
-        txt_content = "\n".join(linhas_txt)
+        html = "<h3>Últimos 60 treinos</h3><table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Tempo de Movimento</th><th>Tipo</th><th>Pace Médio</th><th>Elevação (m)</th><th>Data</th></tr>"
+        linhas_txt = []
 
-        html = f"""
-        <h3>Últimos 60 treinos</h3>
-        <p>Dados detalhados por treino.</p>
-        <form method="post" action="/baixar-txt" target="_blank">
+        for atividade in atividades:
+            nome = atividade.get("name", "Sem título")
+            distancia_km = round(atividade.get("distance", 0) / 1000, 2)
+
+            tempo_movimento_seg = atividade.get("moving_time", 0)
+            tempo_movimento_fmt = str(datetime.timedelta(seconds=tempo_movimento_seg))
+
+            tipo = atividade.get("type", "Desconhecido")
+            elevacao = round(atividade.get("total_elevation_gain", 0), 1)
+
+            if atividade.get("distance"):
+                pace = (tempo_movimento_seg / 60) / (atividade.get("distance") / 1000)
+                pace_fmt = f"{int(pace)}:{int((pace % 1) * 60):02d} min/km"
+            else:
+                pace_fmt = "-"
+
+            data_str = atividade.get("start_date_local", "")  # Ex: '2025-07-25T05:59:31Z'
+            try:
+                data_fmt = datetime.datetime.strptime(data_str[:16], "%Y-%m-%dT%H:%M").strftime("%d/%m/%Y - %H:%M")
+            except:
+                data_fmt = data_str
+
+            html += f"<tr><td>{nome}</td><td>{distancia_km}</td><td>{tempo_movimento_fmt}</td><td>{tipo}</td><td>{pace_fmt}</td><td>{elevacao}</td><td>{data_fmt}</td></tr>"
+
+            # Salvar versão .txt com todos os dados crus de cada treino
+            linhas_txt.append(str(atividade))
+
+        html += "</table>"
+
+        txt_content = "\n\n".join(linhas_txt)
+        data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
+        nome_arquivo = f"{nome_atleta}_treinos_{data_atual}.txt"
+
+        html += f"""
+        <br><form method="post" action="/baixar-txt" target="_blank">
             <input type="hidden" name="dados" value="{txt_content.replace('"', '&quot;')}">
-            <input type="hidden" name="filename" value="treinos_{token}.txt">
-            <button type="submit">📄 Baixar em TXT</button>
+            <input type="hidden" name="filename" value="{nome_arquivo}">
+            <button type="submit">📄 Baixar Treinos Completos (.txt)</button>
         </form>
-        <pre style="background:#f4f4f4; padding:10px">{txt_content}</pre>
         """
+
         return render_template_string(html)
     except Exception as e:
         return f"Erro ao processar atividades: {str(e)}", 500
