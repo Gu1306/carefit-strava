@@ -85,27 +85,36 @@ def ver_atividades(token):
         if not atividades:
             return "Nenhuma atividade encontrada."
 
-        linhas_txt = []
-        html = "<h3>Últimos 60 treinos</h3><table border='1'><tr><th>Data</th><th>Nome</th><th>Distância (km)</th><th>Tempo (min)</th><th>Ritmo</th></tr>"
-        for atividade in atividades:
-            nome = atividade.get("name", "Sem título")
-            distancia_km = round(atividade.get("distance", 0) / 1000, 2)
-            duracao_min = round(atividade.get("elapsed_time", 0) / 60, 2)
-            ritmo = f"{round((atividade.get('elapsed_time', 1) / 60) / (atividade.get('distance', 1) / 1000), 2)} min/km" if atividade.get('distance') else "-"
-            data = atividade.get("start_date_local", "")[:10]
+        def formatar_atividade(t):
+            return "\n".join([
+                f"Nome: {t.get('name')}",
+                f"Distância: {round(t.get('distance', 0) / 1000, 2)} km",
+                f"Tempo de Movimento: {round(t.get('moving_time', 0) / 60, 2)} min",
+                f"Tempo Total: {round(t.get('elapsed_time', 0) / 60, 2)} min",
+                f"Tipo: {t.get('type')}",
+                f"Velocidade Média: {t.get('average_speed', '-')}",
+                f"Elevação: {t.get('total_elevation_gain', '-')} m",
+                f"Data: {t.get('start_date_local', '')}",
+                f"Temperatura Média: {t.get('average_temp', '-')}",
+                f"Frequência Cardíaca Média: {t.get('average_heartrate', '-')}",
+                f"Cadência Média: {t.get('average_cadence', '-')}",
+                f"Esforço Percebido: {t.get('perceived_exertion', '-')}",
+                f"Calorias: {t.get('calories', '-')}",
+                "-"*40
+            ])
 
-            html += f"<tr><td>{data}</td><td>{nome}</td><td>{distancia_km}</td><td>{duracao_min}</td><td>{ritmo}</td></tr>"
-            linhas_txt.append(f"{data} | {nome} | {distancia_km} km | {duracao_min} min | {ritmo}")
-
-        html += "</table>"
+        linhas_txt = [formatar_atividade(t) for t in atividades]
         txt_content = "\n".join(linhas_txt)
 
-        html += f"""
-        <br><form method="post" action="/baixar-txt" target="_blank">
+        html = f"""
+        <h3>Últimos 60 treinos</h3>
+        <p>Dados detalhados por treino.</p>
+        <form method="post" action="/baixar-txt" target="_blank">
             <input type="hidden" name="dados" value="{txt_content.replace('"', '&quot;')}">
             <input type="hidden" name="filename" value="treinos_{token}.txt">
             <button type="submit">📄 Baixar em TXT</button>
         </form>
+        <pre style="background:#f4f4f4; padding:10px">{txt_content}</pre>
         """
         return render_template_string(html)
     except Exception as e:
