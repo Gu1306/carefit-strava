@@ -48,6 +48,56 @@ def painel_tokens():
     except Exception as e:
         return f"Erro ao carregar painel: {str(e)}", 500
 
+@app.route("/atividades/<token>")
+@requires_auth
+def ver_atividades(token):
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(
+            "https://www.strava.com/api/v3/athlete/activities?per_page=60",
+            headers=headers,
+            timeout=10
+        )
+        if response.status_code != 200:
+            return f"Erro ao buscar atividades: {response.status_code}", 400
+
+        atividades = response.json()
+        if not atividades:
+            return "Nenhuma atividade encontrada."
+
+        linhas_txt = []
+        html = "<h3>Últimos 60 treinos</h3><table border='1'><tr><th>Data</th><th>Nome</th><th>Distância (km)</th><th>Tempo (min)</th><th>Ritmo</th></tr>"
+        for atividade in atividades:
+            nome = atividade.get("name", "Sem título")
+            distancia_km = round(atividade.get("distance", 0) / 1000, 2)
+            duracao_min = round(atividade.get("elapsed_time", 0) / 60, 2)
+            ritmo = f"{round((atividade.get('elapsed_time', 1) / 60) / (atividade.get('distance', 1) / 1000), 2)} min/km" if atividade.get('distance') else "-"
+            data = atividade.get("start_date_local", "")[:10]
+
+            html += f"<tr><td>{data}</td><td>{nome}</td><td>{distancia_km}</td><td>{duracao_min}</td><td>{ritmo}</td></tr>"
+            linhas_txt.append(f"{data} | {nome} | {distancia_km} km | {duracao_min} min | {ritmo}")
+
+        html += "</table>"
+        txt_content = "\n".join(linhas_txt)
+
+        html += f"""
+        <br><form method="post" action="/baixar-txt" target="_blank">
+            <input type="hidden" name="dados" value="{txt_content.replace('"', '&quot;')}">
+            <input type="hidden" name="filename" value="treinos_{token}.txt">
+            <button type="submit">📄 Baixar em TXT</button>
+        </form>
+        """
+        return render_template_string(html)
+    except Exception as e:
+        return f"Erro ao processar atividades: {str(e)}", 500
+
+@app.route("/baixar-txt", methods=["POST"])
+def baixar_txt():
+    dados = request.form.get("dados", "")
+    filename = request.form.get("filename", "treinos.txt")
+    return Response(dados, mimetype="text/plain", headers={"Content-Disposition": f"attachment;filename={filename}"})
+
+
  # ======= Rota manual para forçar atualização imediata dos tokens =======
 @app.route("/forcar-atualizacao")
 @requires_auth
