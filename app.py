@@ -15,22 +15,6 @@ scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
 
-# ======= Função de autenticação básica =======
-def check_auth(password):
-    return password == "Toktok*11"
-
-def requires_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not check_auth(auth.password):
-            return Response(
-                "Acesso restrito à CareFit.\n", 401,
-                {'WWW-Authenticate': 'Basic realm="Login Required"'}
-            )
-        return f(*args, **kwargs)
-    return decorated
-
 # ======= Rota protegida para painel HTML =======
 @app.route("/painel")
 @requires_auth
@@ -52,13 +36,14 @@ def painel_tokens():
                 <th>Nome</th>
                 <th>ID</th>
                 <th>Access Token</th>
+                <th>Refresh Token</th>
                 <th>Expira Em</th>
             </tr>
         """
         for a in atletas:
             nome_link = f"<a href='/atividades/{a['access_token']}' target='_blank'>{a['firstname']} {a['lastname']}</a>"
             expira = datetime.datetime.fromtimestamp(a["expires_at"])
-            html += f"<tr><td>{nome_link}</td><td>{a['athlete_id']}</td><td>{a['access_token']}</td><td>{expira}</td></tr>"
+            html += f"<tr><td>{nome_link}</td><td>{a['athlete_id']}</td><td>{a['access_token']}</td><td>{a['refresh_token']}</td><td>{expira}</td></tr>"
 
         html += "</table>"
         return render_template_string(html)
