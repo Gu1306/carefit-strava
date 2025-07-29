@@ -1,6 +1,7 @@
 import os
 import requests
 
+# ====== Troca inicial de código por token ======
 def exchange_token(code):
     client_id = os.getenv("CLIENT_ID")
     client_secret = os.getenv("CLIENT_SECRET")
@@ -30,9 +31,7 @@ def exchange_token(code):
     response.raise_for_status()
     return response.json()
 
-import os
-import requests
-
+# ====== Atualização do token via refresh_token ======
 def refresh_token(refresh_token):
     client_id = os.getenv("CLIENT_ID")
     client_secret = os.getenv("CLIENT_SECRET")
@@ -52,4 +51,3 @@ def refresh_token(refresh_token):
         raise Exception(f"Erro ao renovar token: {response.status_code} - {response.text}")
 
     return response.json()
-
