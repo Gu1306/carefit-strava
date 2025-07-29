@@ -38,16 +38,36 @@ def painel_tokens():
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT firstname, lastname, athlete_id, access_token, refresh_token, expires_at FROM athletes ORDER BY firstname")
+                cur.execute("""
+                    SELECT firstname, lastname, athlete_id, access_token, refresh_token, expires_at
+                    FROM athletes
+                    ORDER BY firstname
+                """)
                 atletas = cur.fetchall()
-        html = "<h2>Tokens dos Atletas - CareFit</h2><table border='1'><tr><th>Nome</th><th>ID</th><th>Access Token</th><th>Expires At</th></tr>"
+
+        html = """
+        <h2>Tokens dos Atletas - CareFit</h2>
+        <table border='1'>
+            <tr>
+                <th>Nome</th>
+                <th>ID</th>
+                <th>Access Token</th>
+                <th>Expira Em</th>
+            </tr>
+        """
         for a in atletas:
-            html += f"<tr><td>{a['firstname']} {a['lastname']}</td><td>{a['athlete_id']}</td><td>{a['access_token']}</td><td>{datetime.datetime.fromtimestamp(a['expires_at'])}</td></tr>"
+            nome_link = f"<a href='/atividades/{a['access_token']}' target='_blank'>{a['firstname']} {a['lastname']}</a>"
+            expira = datetime.datetime.fromtimestamp(a["expires_at"])
+            html += f"<tr><td>{nome_link}</td><td>{a['athlete_id']}</td><td>{a['access_token']}</td><td>{expira}</td></tr>"
+
         html += "</table>"
         return render_template_string(html)
+
     except Exception as e:
         return f"Erro ao carregar painel: {str(e)}", 500
 
+
+# ======= Rota para exibir e baixar as atividades =======
 @app.route("/atividades/<token>")
 @requires_auth
 def ver_atividades(token):
