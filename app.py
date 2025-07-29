@@ -51,17 +51,17 @@ def painel_tokens():
             <tr>
                 <th>Nome</th>
                 <th>ID</th>
-		<th>Link Strava</th>
+                <th>Link Strava</th>
                 <th>Access Token</th>
                 <th>Refresh Token</th>
                 <th>Expira Em</th>
             </tr>
         """
         for a in atletas:
-           	nome_link = f"<a href='/atividades/{a['access_token']}' target='_blank'>{a['firstname']} {a['lastname']}</a>"
-    		strava_link = f"<a href='https://www.strava.com/athletes/{a['athlete_id']}' target='_blank'>🔗 Perfil</a>"
-   		expira = datetime.datetime.fromtimestamp(a["expires_at"])
-    		html += f"<tr><td>{nome_link}</td><td>{a['athlete_id']}</td><td>{strava_link}</td><td>{a['access_token']}</td><td>{a['refresh_token']}</td><td>{expira}</td></tr>"
+            nome_link = f"<a href='/atividades/{a['access_token']}' target='_blank'>{a['firstname']} {a['lastname']}</a>"
+            strava_link = f"<a href='https://www.strava.com/athletes/{a['athlete_id']}' target='_blank'>🔗 Perfil</a>"
+            expira = datetime.datetime.fromtimestamp(a["expires_at"])
+            html += f"<tr><td>{nome_link}</td><td>{a['athlete_id']}</td><td>{strava_link}</td><td>{a['access_token']}</td><td>{a['refresh_token']}</td><td>{expira}</td></tr>"
 
         html += "</table>"
         return render_template_string(html)
