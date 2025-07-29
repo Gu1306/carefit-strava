@@ -48,7 +48,7 @@ def painel_tokens():
     except Exception as e:
         return f"Erro ao carregar painel: {str(e)}", 500
 
- ======= Rota manual para forçar atualização imediata dos tokens =======
+ # ======= Rota manual para forçar atualização imediata dos tokens =======
 @app.route("/forcar-atualizacao")
 @requires_auth
 def forcar_atualizacao_tokens():
