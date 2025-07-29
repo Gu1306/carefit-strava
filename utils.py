@@ -29,3 +29,27 @@ def exchange_token(code):
 
     response.raise_for_status()
     return response.json()
+
+import os
+import requests
+
+def refresh_token(refresh_token):
+    client_id = os.getenv("CLIENT_ID")
+    client_secret = os.getenv("CLIENT_SECRET")
+
+    response = requests.post(
+        "https://www.strava.com/oauth/token",
+        data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+        },
+        timeout=10
+    )
+
+    if response.status_code != 200:
+        raise Exception(f"Erro ao renovar token: {response.status_code} - {response.text}")
+
+    return response.json()
+
