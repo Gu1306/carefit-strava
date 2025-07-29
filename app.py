@@ -86,65 +86,63 @@ def ver_atividades(token):
         if not atividades:
             return "Nenhuma atividade encontrada."
 
-    try:
-    # Buscar nome do atleta pelo token no banco de dados
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT firstname, lastname FROM athletes WHERE access_token = %s", (token,))
-            resultado = cur.fetchone()
-            if resultado:
-                nome_atleta = f"{resultado['firstname']}_{resultado['lastname']}".replace(" ", "_")
+        # Buscar nome do atleta pelo token no banco de dados
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT firstname, lastname FROM athletes WHERE access_token = %s", (token,))
+                resultado = cur.fetchone()
+                if resultado:
+                    nome_atleta = f"{resultado['firstname']}_{resultado['lastname']}".replace(" ", "_")
+                else:
+                    nome_atleta = "atleta"
+
+        html = "<h3>Últimos 60 treinos</h3><table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Tempo de Movimento</th><th>Tipo</th><th>Pace Médio</th><th>Elevação (m)</th><th>Data</th></tr>"
+        linhas_txt = []
+
+        for atividade in atividades:
+            nome = atividade.get("name", "Sem título")
+            distancia_km = round(atividade.get("distance", 0) / 1000, 2)
+
+            tempo_movimento_seg = atividade.get("moving_time", 0)
+            tempo_movimento_fmt = str(datetime.timedelta(seconds=tempo_movimento_seg))
+
+            tipo = atividade.get("type", "Desconhecido")
+            elevacao = round(atividade.get("total_elevation_gain", 0), 1)
+
+            if atividade.get("distance"):
+                pace = (tempo_movimento_seg / 60) / (atividade.get("distance") / 1000)
+                pace_fmt = f"{int(pace)}:{int((pace % 1) * 60):02d} min/km"
             else:
-                nome_atleta = "atleta"
+                pace_fmt = "-"
 
-    html = "<h3>Últimos 60 treinos</h3><table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Tempo de Movimento</th><th>Tipo</th><th>Pace Médio</th><th>Elevação (m)</th><th>Data</th></tr>"
-    linhas_txt = []
+            data_str = atividade.get("start_date_local", "")
+            try:
+                data_fmt = datetime.datetime.strptime(data_str[:16], "%Y-%m-%dT%H:%M").strftime("%d/%m/%Y - %H:%M")
+            except:
+                data_fmt = data_str
 
-    for atividade in atividades:
-        nome = atividade.get("name", "Sem título")
-        distancia_km = round(atividade.get("distance", 0) / 1000, 2)
+            html += f"<tr><td>{nome}</td><td>{distancia_km}</td><td>{tempo_movimento_fmt}</td><td>{tipo}</td><td>{pace_fmt}</td><td>{elevacao}</td><td>{data_fmt}</td></tr>"
 
-        tempo_movimento_seg = atividade.get("moving_time", 0)
-        tempo_movimento_fmt = str(datetime.timedelta(seconds=tempo_movimento_seg))
+            # Salvar versão .txt com todos os dados crus de cada treino
+            linhas_txt.append(str(atividade))
 
-        tipo = atividade.get("type", "Desconhecido")
-        elevacao = round(atividade.get("total_elevation_gain", 0), 1)
+        html += "</table>"
 
-        if atividade.get("distance"):
-            pace = (tempo_movimento_seg / 60) / (atividade.get("distance") / 1000)
-            pace_fmt = f"{int(pace)}:{int((pace % 1) * 60):02d} min/km"
-        else:
-            pace_fmt = "-"
+        txt_content = "\n\n".join(linhas_txt)
+        data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
+        nome_arquivo = f"{nome_atleta}_treinos_{data_atual}.txt"
 
-        data_str = atividade.get("start_date_local", "")
-        try:
-            data_fmt = datetime.datetime.strptime(data_str[:16], "%Y-%m-%dT%H:%M").strftime("%d/%m/%Y - %H:%M")
-        except:
-            data_fmt = data_str
+        html += f"""
+        <br><form method="post" action="/baixar-txt" target="_blank">
+            <input type="hidden" name="dados" value="{txt_content.replace('"', '&quot;')}">
+            <input type="hidden" name="filename" value="{nome_arquivo}">
+            <button type="submit">📄 Baixar Treinos Completos (.txt)</button>
+        </form>
+        """
+        return render_template_string(html)
 
-        html += f"<tr><td>{nome}</td><td>{distancia_km}</td><td>{tempo_movimento_fmt}</td><td>{tipo}</td><td>{pace_fmt}</td><td>{elevacao}</td><td>{data_fmt}</td></tr>"
-
-        # Salvar versão .txt com todos os dados crus de cada treino
-        linhas_txt.append(str(atividade))
-
-    html += "</table>"
-
-    txt_content = "\n\n".join(linhas_txt)
-    data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
-    nome_arquivo = f"{nome_atleta}_treinos_{data_atual}.txt"
-
-    html += f"""
-    <br><form method="post" action="/baixar-txt" target="_blank">
-        <input type="hidden" name="dados" value="{txt_content.replace('"', '&quot;')}">
-        <input type="hidden" name="filename" value="{nome_arquivo}">
-        <button type="submit">📄 Baixar Treinos Completos (.txt)</button>
-    </form>
-    """
-    return render_template_string(html)
-
-except Exception as e:
-    return f"Erro ao processar atividades: {str(e)}", 500
-
+    except Exception as e:
+        return f"Erro ao processar atividades: {str(e)}", 500
 
 @app.route("/baixar-txt", methods=["POST"])
 def baixar_txt():
