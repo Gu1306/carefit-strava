@@ -86,9 +86,15 @@ def ver_atividades(token):
         if not atividades:
             return "Nenhuma atividade encontrada."
 
-        # Buscar nome do atleta (opcional, extraído da primeira atividade se possível)
-        nome_atleta = atividades[0].get("athlete", {}).get("firstname", "atleta") + "_" + atividades[0].get("athlete", {}).get("lastname", "")
-        nome_atleta = nome_atleta.replace(" ", "_")
+       # Buscar nome do atleta pelo token no banco de dados
+with get_connection() as conn:
+    with conn.cursor() as cur:
+        cur.execute("SELECT firstname, lastname FROM athletes WHERE access_token = %s", (token,))
+        resultado = cur.fetchone()
+        if resultado:
+            nome_atleta = f"{resultado['firstname']}_{resultado['lastname']}".replace(" ", "_")
+        else:
+            nome_atleta = "atleta"
 
         html = "<h3>Últimos 60 treinos</h3><table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Tempo de Movimento</th><th>Tipo</th><th>Pace Médio</th><th>Elevação (m)</th><th>Data</th></tr>"
         linhas_txt = []
