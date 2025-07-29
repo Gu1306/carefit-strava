@@ -15,6 +15,22 @@ scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
 
+# ======= Função de autenticação básica =======
+def check_auth(password):
+    return password == "Toktok*11"
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.password):
+            return Response(
+                "Acesso restrito à CareFit.\n", 401,
+                {'WWW-Authenticate': 'Basic realm="Login Required"'}
+            )
+        return f(*args, **kwargs)
+    return decorated
+
 # ======= Rota protegida para painel HTML =======
 @app.route("/painel")
 @requires_auth
