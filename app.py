@@ -48,8 +48,34 @@ def painel_tokens():
     except Exception as e:
         return f"Erro ao carregar painel: {str(e)}", 500
 
+ ======= Rota manual para forçar atualização imediata dos tokens =======
+@app.route("/forcar-atualizacao")
+@requires_auth
+def forcar_atualizacao_tokens():
+    print("🔧 Atualização manual de tokens iniciada...")
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT athlete_id, refresh_token FROM athletes")
+                atletas = cur.fetchall()
+
+        atualizados = []
+        for atleta in atletas:
+            try:
+                data = refresh_token(atleta['refresh_token'])
+                save_athlete(data)
+                nome = f"{data['athlete']['firstname']} {data['athlete']['lastname']}"
+                atualizados.append(nome)
+                print(f"✔ Token atualizado: {nome}")
+            except Exception as e:
+                print(f"⚠ Erro ao atualizar token do atleta {atleta['athlete_id']}: {str(e)}")
+
+        return f"Tokens atualizados com sucesso: {', '.join(atualizados)}", 200
+    except Exception as e:
+        return f"Erro ao atualizar tokens: {str(e)}", 500
+
 # ======= Tarefa agendada: atualizar tokens todos os dias =======
-@scheduler.task("cron", id="atualiza_tokens", hour=3)
+@scheduler.task("cron", id="atualiza_tokens", hour=5)
 def atualizar_tokens_expirados():
     print("⏰ Iniciando atualização automática de tokens...")
     try:
