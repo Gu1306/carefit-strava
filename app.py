@@ -130,6 +130,20 @@ def ver_atividades(token):
                 html_content += f"<li>{km} km: {tempo} — {nome_atividade}</li>"
         html_content += "</ul>"
 
+        # Adiciona tabela com os últimos treinos
+        html_content += "<h4>📋 Treinos nos últimos 90 dias</h4>"
+        html_content += "<table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Pace Médio</th><th>Tempo Total</th><th>Altimetria</th></tr>"
+        for a in atividades_90dias:
+            nome = html.escape(a['name'])
+            dist_km = round(a['distance']/1000, 2)
+            moving_time = a['moving_time']
+            pace = (moving_time / (a['distance']/1000)) if a['distance'] else 0
+            pace_str = str(datetime.timedelta(seconds=int(pace))) if pace > 0 else '-'
+            duracao = str(datetime.timedelta(seconds=moving_time))
+            altimetria = a.get('total_elevation_gain', '-')
+            html_content += f"<tr><td>{nome}</td><td>{dist_km}</td><td>{pace_str}</td><td>{duracao}</td><td>{altimetria}</td></tr>"
+        html_content += "</table>"
+
         html_content += f"""
         <br><form method="post" action="/baixar-txt" target="_blank">
             <input type="hidden" name="dados" value="{dados_codificados}">
