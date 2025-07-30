@@ -186,3 +186,22 @@ def baixar_txt():
         mimetype='text/plain',
         headers={'Content-Disposition': f'attachment;filename={filename}'}
     )
+
+@app.route("/callback")
+def callback():
+    try:
+        code = request.args.get("code")
+        if not code:
+            return "❌ Erro: código de autorização não encontrado."
+
+        athlete_data = exchange_token(code)  # troca o code por access/refresh tokens
+        save_athlete(athlete_data)           # salva no banco
+
+        return """
+        <h2>✅ Tudo certo!</h2>
+        <p>Sua conta Strava foi conectada com sucesso à CareFit.</p>
+        <p>Agora podemos acompanhar seus treinos e cuidar ainda melhor da sua performance! 🧡</p>
+        <a href='https://carefitclub.com.br'>← Voltar para o site</a>
+        """
+    except Exception as e:
+        return f"❌ Erro ao processar autorização: {str(e)}"
