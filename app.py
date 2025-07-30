@@ -181,7 +181,7 @@ def forcar_atualizacao_tokens():
         return f"Erro ao atualizar tokens: {str(e)}", 500
 
 # ======= Tarefa agendada: atualizar tokens todos os dias =======
-@scheduler.task("cron", id="atualiza_tokens", hour=5)
+@scheduler.task("cron", id="atualiza_tokens", hour=8)  # UTC +3 = 5h local
 def atualizar_tokens_expirados():
     print("⏰ Iniciando atualização automática de tokens...")
     try:
