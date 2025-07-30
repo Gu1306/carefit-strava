@@ -90,7 +90,7 @@ def ver_atividades(token):
             with conn.cursor() as cur:
                 cur.execute("SELECT firstname, lastname FROM athletes WHERE access_token = %s", (token,))
                 resultado = cur.fetchone()
-                nome_atleta = f"{resultado['firstname']}_{resultado['lastname']}".replace(" ", "_") if resultado else "atleta"
+                nome_atleta = f"{html.escape(resultado['firstname'])}_{html.escape(resultado['lastname'])}".replace(" ", "_") if resultado else "atleta"
 
         txt_content = "\n\n".join([str(a) for a in atividades])
         data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
