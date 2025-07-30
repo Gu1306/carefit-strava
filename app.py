@@ -65,6 +65,9 @@ def painel_tokens():
 def ver_atividades(token):
     try:
         headers = {"Authorization": f"Bearer {token}"}
+        profile_response = requests.get("https://www.strava.com/api/v3/athlete", headers=headers, timeout=10)
+        athlete_profile = profile_response.json()
+
         page = 1
         atividades = []
 
@@ -89,9 +92,11 @@ def ver_atividades(token):
 
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT firstname, lastname FROM athletes WHERE access_token = %s", (token,))
+                cur.execute("SELECT firstname, lastname, athlete_id FROM athletes WHERE access_token = %s", (token,))
                 resultado = cur.fetchone()
+                nome_atleta_completo = f"{resultado['firstname']} {resultado['lastname']}"
                 nome_atleta = f"{html.escape(resultado['firstname'])}_{html.escape(resultado['lastname'])}".replace(" ", "_") if resultado else "atleta"
+                athlete_id = resultado['athlete_id'] if resultado else None
 
         txt_content = "\n\n".join([str(a) for a in atividades])
         dados_codificados = base64.b64encode(txt_content.encode("utf-8")).decode("utf-8")
@@ -112,7 +117,22 @@ def ver_atividades(token):
                 default=None
             )
 
-        html_content = "<h3>Resumo dos Últimos 90 Dias</h3>"
+        foto_url = athlete_profile.get("profile", "")
+        link_strava = f"https://www.strava.com/athletes/{athlete_id}" if athlete_id else "#"
+
+        html_content = f"""
+        <div style='display:flex; align-items:center; gap:10px;'>
+            <img src='{foto_url}' alt='Foto' width='60' height='60' style='border-radius:50%;'>
+            <div>
+                <h2 style='margin:0; font-size: 20px;'>
+                    <strong>{html.escape(nome_atleta_completo)}</strong>
+                    <a href='{link_strava}' target='_blank'>🔗</a>
+                </h2>
+            </div>
+        </div>
+        """
+
+        html_content += "<h3>Resumo dos Últimos 90 Dias</h3>"
         if maior_corrida:
             dist_km = round(maior_corrida['distance']/1000, 2)
             nome_corrida = html.escape(maior_corrida['name'])
@@ -130,7 +150,6 @@ def ver_atividades(token):
                 html_content += f"<li>{km} km: {tempo} — {nome_atividade}</li>"
         html_content += "</ul>"
 
-        # Adiciona tabela com os últimos treinos
         html_content += "<h4>📋 Treinos nos últimos 90 dias</h4>"
         html_content += "<table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Pace Médio</th><th>Tempo Total</th><th>Altimetria</th></tr>"
         for a in atividades_90dias:
