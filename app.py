@@ -7,6 +7,7 @@ from utils import exchange_token, refresh_token
 from db import save_athlete, get_connection
 import datetime
 import pytz
+import html
 from atualizar_tokens import atualizar_tokens_expirados
 
 app = Flask(__name__)
@@ -45,15 +46,15 @@ def painel_tokens():
                 cur.execute("SELECT firstname, lastname, athlete_id, access_token, refresh_token, expires_at FROM athletes ORDER BY firstname")
                 atletas = cur.fetchall()
 
-        html = "<h2>Tokens dos Atletas - CareFit</h2><table border='1'><tr><th>Nome</th><th>ID</th><th>Link Strava</th><th>Access Token</th><th>Refresh Token</th><th>Expira Em</th></tr>"
+        html_content = "<h2>Tokens dos Atletas - CareFit</h2><table border='1'><tr><th>Nome</th><th>ID</th><th>Link Strava</th><th>Access Token</th><th>Refresh Token</th><th>Expira Em</th></tr>"
         for a in atletas:
             nome_link = f"<a href='/atividades/{a['access_token']}' target='_blank'>{a['firstname']} {a['lastname']}</a>"
             strava_link = f"<a href='https://www.strava.com/athletes/{a['athlete_id']}' target='_blank'>🔗 Perfil</a>"
             expira = datetime.datetime.fromtimestamp(a["expires_at"])
-            html += f"<tr><td>{nome_link}</td><td>{a['athlete_id']}</td><td>{strava_link}</td><td>{a['access_token']}</td><td>{a['refresh_token']}</td><td>{expira}</td></tr>"
+            html_content += f"<tr><td>{nome_link}</td><td>{a['athlete_id']}</td><td>{strava_link}</td><td>{a['access_token']}</td><td>{a['refresh_token']}</td><td>{expira}</td></tr>"
 
-        html += "</table>"
-        return render_template_string(html)
+        html_content += "</table>"
+        return render_template_string(html_content)
 
     except Exception as e:
         return f"Erro ao carregar painel: {str(e)}", 500
@@ -66,7 +67,6 @@ def ver_atividades(token):
         page = 1
         atividades = []
 
-        # Buscar todas as atividades (Strava paginado)
         while True:
             response = requests.get(
                 f"https://www.strava.com/api/v3/athlete/activities?per_page=200&page={page}",
@@ -96,7 +96,6 @@ def ver_atividades(token):
         data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
         nome_arquivo = f"{nome_atleta}_treinos_{data_atual}.txt"
 
-        # Filtrar apenas dos últimos 90 dias
         limite_data = datetime.datetime.now() - datetime.timedelta(days=90)
         atividades_90dias = [a for a in atividades if datetime.datetime.strptime(a['start_date_local'][:10], "%Y-%m-%d") >= limite_data]
 
@@ -111,29 +110,32 @@ def ver_atividades(token):
                 default=None
             )
 
-        html = "<h3>Resumo dos Últimos 90 Dias</h3>"
+        html_content = "<h3>Resumo dos Últimos 90 Dias</h3>"
         if maior_corrida:
             dist_km = round(maior_corrida['distance']/1000, 2)
-            html += f"<p><strong>🏃‍♂️ Maior corrida:</strong> {dist_km} km — {maior_corrida['name']}</p>"
+            nome_corrida = html.escape(maior_corrida['name'])
+            html_content += f"<p><strong>🏃‍♂️ Maior corrida:</strong> {dist_km} km — {nome_corrida}</p>"
         if maior_pedal:
             dist_km = round(maior_pedal['distance']/1000, 2)
-            html += f"<p><strong>🚴‍♂️ Maior pedal:</strong> {dist_km} km — {maior_pedal['name']}</p>"
+            nome_pedal = html.escape(maior_pedal['name'])
+            html_content += f"<p><strong>🚴‍♂️ Maior pedal:</strong> {dist_km} km — {nome_pedal}</p>"
 
-        html += "<h4>🏆 Melhores tempos por distância:</h4><ul>"
+        html_content += "<h4>🏆 Melhores tempos por distância:</h4><ul>"
         for km, atividade in melhores.items():
             if atividade:
                 tempo = str(datetime.timedelta(seconds=atividade['moving_time']))
-                html += f"<li>{km} km: {tempo} — {atividade['name']}</li>"
-        html += "</ul>"
+                nome_atividade = html.escape(atividade['name'])
+                html_content += f"<li>{km} km: {tempo} — {nome_atividade}</li>"
+        html_content += "</ul>"
 
-        html += f"""
+        html_content += f"""
         <br><form method="post" action="/baixar-txt" target="_blank">
-            <input type="hidden" name="dados" value="{txt_content.replace('"', '&quot;')}">
+            <input type="hidden" name="dados" value="{html.escape(txt_content)}">
             <input type="hidden" name="filename" value="{nome_arquivo}">
             <button type="submit">📄 Baixar Treinos Completos (.txt)</button>
         </form>
         """
-        return render_template_string(html)
+        return render_template_string(html_content)
 
     except Exception as e:
         return f"Erro ao processar atividades: {str(e)}", 500
