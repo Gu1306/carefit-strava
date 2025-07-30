@@ -8,6 +8,7 @@ from db import save_athlete, get_connection
 import datetime
 import pytz
 import html
+import base64
 from atualizar_tokens import atualizar_tokens_expirados
 
 app = Flask(__name__)
@@ -93,6 +94,7 @@ def ver_atividades(token):
                 nome_atleta = f"{html.escape(resultado['firstname'])}_{html.escape(resultado['lastname'])}".replace(" ", "_") if resultado else "atleta"
 
         txt_content = "\n\n".join([str(a) for a in atividades])
+        dados_codificados = base64.b64encode(txt_content.encode("utf-8")).decode("utf-8")
         data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
         nome_arquivo = f"{nome_atleta}_treinos_{data_atual}.txt"
 
@@ -130,7 +132,7 @@ def ver_atividades(token):
 
         html_content += f"""
         <br><form method="post" action="/baixar-txt" target="_blank">
-            <input type="hidden" name="dados" value="{html.escape(txt_content)}">
+            <input type="hidden" name="dados" value="{dados_codificados}">
             <input type="hidden" name="filename" value="{nome_arquivo}">
             <button type="submit">📄 Baixar Treinos Completos (.txt)</button>
         </form>
@@ -139,3 +141,15 @@ def ver_atividades(token):
 
     except Exception as e:
         return f"Erro ao processar atividades: {str(e)}", 500
+
+@app.route('/baixar-txt', methods=['POST'])
+@requires_auth
+def baixar_txt():
+    dados_codificados = request.form['dados']
+    filename = request.form['filename']
+    dados_decodificados = base64.b64decode(dados_codificados).decode('utf-8')
+    return Response(
+        dados_decodificados,
+        mimetype='text/plain',
+        headers={'Content-Disposition': f'attachment;filename={filename}'}
+    )
