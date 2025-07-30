@@ -205,3 +205,16 @@ def callback():
         """
     except Exception as e:
         return f"❌ Erro ao processar autorização: {str(e)}"
+
+@app.route("/atualizar-tokens-manualmente")
+def atualizar_tokens_manual():
+    chave = request.args.get("chave")
+    if chave != os.getenv("SECRET_KEY"):
+        return "🔒 Acesso não autorizado."
+
+    try:
+        from atualizar_tokens import atualizar_tokens_expirados
+        total = atualizar_tokens_expirados()
+        return f"✅ Atualização concluída! Tokens atualizados: {total}"
+    except Exception as e:
+        return f"❌ Erro ao atualizar tokens: {str(e)}"
