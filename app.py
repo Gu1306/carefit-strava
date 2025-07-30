@@ -6,6 +6,8 @@ import requests
 from utils import exchange_token, refresh_token
 from db import save_athlete, get_connection
 import datetime
+import pytz
+from atualizar_tokens import atualizar_tokens_expirados
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'Toktok*11')  # proteção simples
@@ -14,6 +16,16 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'Toktok*11')  # proteção si
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
+
+@scheduler.task("cron", id="tokens_06h", hour=6, timezone="America/Sao_Paulo")
+def job_6h():
+    print("⏰ [06:00] Atualizando tokens...")
+    atualizar_tokens_expirados()
+
+@scheduler.task("cron", id="tokens_13h", hour=13, timezone="America/Sao_Paulo")
+def job_13h():
+    print("⏰ [13:00] Atualizando tokens...")
+    atualizar_tokens_expirados()
 
 # ======= Função de autenticação básica =======
 def check_auth(password):
@@ -69,46 +81,51 @@ def painel_tokens():
     except Exception as e:
         return f"Erro ao carregar painel: {str(e)}", 500
 
-
 # ======= Rota para exibir e baixar as atividades =======
 @app.route("/atividades/<token>")
 @requires_auth
 def ver_atividades(token):
     try:
-        # Buscar as atividades
         headers = {"Authorization": f"Bearer {token}"}
-        response = requests.get(
-            "https://www.strava.com/api/v3/athlete/activities?per_page=60",
-            headers=headers,
-            timeout=10
-        )
-        if response.status_code != 200:
-            return f"Erro ao buscar atividades: {response.status_code}", 400
+        page = 1
+        atividades = []
 
-        atividades = response.json()
+        while True:
+            response = requests.get(
+                f"https://www.strava.com/api/v3/athlete/activities?per_page=200&page={page}",
+                headers=headers,
+                timeout=10
+            )
+            if response.status_code != 200:
+                break
+
+            page_data = response.json()
+            if not page_data:
+                break
+
+            atividades.extend(page_data)
+            page += 1
+
         if not atividades:
             return "Nenhuma atividade encontrada."
 
-        # Buscar nome do atleta pelo token no banco de dados
         with get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT firstname, lastname FROM athletes WHERE access_token = %s", (token,))
                 resultado = cur.fetchone()
-                if resultado:
-                    nome_atleta = f"{resultado['firstname']}_{resultado['lastname']}".replace(" ", "_")
-                else:
-                    nome_atleta = "atleta"
+                nome_atleta = f"{resultado['firstname']}_{resultado['lastname']}".replace(" ", "_") if resultado else "atleta"
 
-        html = "<h3>Últimos 60 treinos</h3><table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Tempo de Movimento</th><th>Tipo</th><th>Pace Médio</th><th>Elevação (m)</th><th>Data</th></tr>"
+        html = "<h3>Resumo de atividades</h3><table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Tempo de Movimento</th><th>Tipo</th><th>Pace Médio</th><th>Elevação (m)</th><th>Data</th></tr>"
         linhas_txt = []
+        maior_distancia = 0
+        corrida_maior = None
+        corridas_15k = 0
 
         for atividade in atividades:
             nome = atividade.get("name", "Sem título")
             distancia_km = round(atividade.get("distance", 0) / 1000, 2)
-
             tempo_movimento_seg = atividade.get("moving_time", 0)
             tempo_movimento_fmt = str(datetime.timedelta(seconds=tempo_movimento_seg))
-
             tipo = atividade.get("type", "Desconhecido")
             elevacao = round(atividade.get("total_elevation_gain", 0), 1)
 
@@ -125,11 +142,18 @@ def ver_atividades(token):
                 data_fmt = data_str
 
             html += f"<tr><td>{nome}</td><td>{distancia_km}</td><td>{tempo_movimento_fmt}</td><td>{tipo}</td><td>{pace_fmt}</td><td>{elevacao}</td><td>{data_fmt}</td></tr>"
-
-            # Salvar versão .txt com todos os dados crus de cada treino
             linhas_txt.append(str(atividade))
 
+            if tipo == "Run":
+                if distancia_km > maior_distancia:
+                    maior_distancia = distancia_km
+                    corrida_maior = nome
+                if distancia_km >= 15:
+                    corridas_15k += 1
+
         html += "</table>"
+        html += f"<p><strong>🏅 Maior distância corrida:</strong> {maior_distancia} km ({corrida_maior})</p>"
+        html += f"<p><strong>📈 Corridas com 15km ou mais:</strong> {corridas_15k}</p>"
 
         txt_content = "\n\n".join(linhas_txt)
         data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
@@ -146,80 +170,3 @@ def ver_atividades(token):
 
     except Exception as e:
         return f"Erro ao processar atividades: {str(e)}", 500
-
-@app.route("/baixar-txt", methods=["POST"])
-def baixar_txt():
-    dados = request.form.get("dados", "")
-    filename = request.form.get("filename", "treinos.txt")
-    return Response(dados, mimetype="text/plain", headers={"Content-Disposition": f"attachment;filename={filename}"})
-
-
-
-# ======= Rota já existente (mantida) =======
-@app.route("/")
-def home():
-    return "CareFit Strava API v3 (banco de dados ativo)"
-
-@app.route("/authorize")
-def authorize():
-    client_id = os.getenv("CLIENT_ID")
-    redirect_uri = os.getenv("REDIRECT_URI")
-    return (
-        f"https://www.strava.com/oauth/authorize?client_id={client_id}"
-        f"&response_type=code&redirect_uri={redirect_uri}"
-        f"&scope=activity:read_all&approval_prompt=force"
-    )
-
-@app.route("/callback")
-def callback():
-    code = request.args.get("code")
-    if not code:
-        return "Erro: código não recebido", 400
-
-    try:
-        token_data = exchange_token(code)
-        save_athlete(token_data)
-        return "Autorizado e salvo com sucesso! Você já pode fechar esta aba."
-    except Exception as e:
-        print("Erro no callback:", str(e))
-        return f"Erro interno ao processar callback: {str(e)}", 500
-
-@app.route("/athletes")
-def list_athletes():
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT athlete_id, firstname, lastname, city, state, sex FROM athletes ORDER BY created_at DESC")
-                athletes = cur.fetchall()
-        return jsonify(athletes)
-    except Exception as e:
-        print("Erro ao listar atletas:", str(e))
-        return "Erro ao acessar o banco", 500
-
-@app.route("/activities")
-def get_activities():
-    token = request.args.get("token")
-    if not token:
-        return "Token ausente", 400
-
-    try:
-        headers = {"Authorization": f"Bearer {token}"}
-        response = requests.get(
-            "https://www.strava.com/api/v3/athlete/activities?per_page=60",
-            headers=headers,
-            timeout=10
-        )
-
-        if response.status_code != 200:
-            print("Erro ao buscar atividades:", response.status_code, response.text)
-            return f"Erro do Strava: {response.status_code}", 500
-
-        activities = response.json()
-        return jsonify(activities)
-
-    except Exception as e:
-        print("Erro ao buscar atividades:", str(e))
-        return f"Erro interno: {str(e)}", 500
-
-if __name__ == "__main__":
-    app.run(debug=True)
