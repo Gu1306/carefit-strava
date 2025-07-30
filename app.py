@@ -70,10 +70,12 @@ def ver_atividades(token):
 
         page = 1
         atividades = []
+        agora = int(datetime.datetime.now().timestamp())
+        dois_anos_atras = int((datetime.datetime.now() - datetime.timedelta(days=730)).timestamp())
 
         while True:
             response = requests.get(
-                f"https://www.strava.com/api/v3/athlete/activities?per_page=200&page={page}",
+                f"https://www.strava.com/api/v3/athlete/activities?per_page=200&page={page}&after={dois_anos_atras}&before={agora}",
                 headers=headers,
                 timeout=10
             )
@@ -98,7 +100,13 @@ def ver_atividades(token):
                 nome_atleta = f"{html.escape(resultado['firstname'])}_{html.escape(resultado['lastname'])}".replace(" ", "_") if resultado else "atleta"
                 athlete_id = resultado['athlete_id'] if resultado else None
 
-        txt_content = "\n\n".join([str(a) for a in atividades])
+        atividades_limpa = []
+        for a in atividades:
+            try:
+                atividades_limpa.append(str(a))
+            except Exception as e:
+                atividades_limpa.append(f"⚠️ Erro ao codificar atividade: {e}")
+        txt_content = "\n\n".join(atividades_limpa)
         dados_codificados = base64.b64encode(txt_content.encode("utf-8")).decode("utf-8")
         data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
         nome_arquivo = f"{nome_atleta}_treinos_{data_atual}.txt"
