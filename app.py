@@ -154,52 +154,6 @@ def baixar_txt():
     return Response(dados, mimetype="text/plain", headers={"Content-Disposition": f"attachment;filename={filename}"})
 
 
- # ======= Rota manual para forçar atualização imediata dos tokens =======
-@app.route("/forcar-atualizacao")
-@requires_auth
-def forcar_atualizacao_tokens():
-    print("🔧 Atualização manual de tokens iniciada...")
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT athlete_id, refresh_token FROM athletes")
-                atletas = cur.fetchall()
-
-        atualizados = []
-        for atleta in atletas:
-            try:
-                data = refresh_token(atleta['refresh_token'])
-                save_athlete(data)
-                nome = f"{data['athlete']['firstname']} {data['athlete']['lastname']}"
-                atualizados.append(nome)
-                print(f"✔ Token atualizado: {nome}")
-            except Exception as e:
-                print(f"⚠ Erro ao atualizar token do atleta {atleta['athlete_id']}: {str(e)}")
-
-        return f"Tokens atualizados com sucesso: {', '.join(atualizados)}", 200
-    except Exception as e:
-        return f"Erro ao atualizar tokens: {str(e)}", 500
-
-# ======= Tarefa agendada: atualizar tokens todos os dias =======
-@scheduler.task("cron", id="atualiza_tokens", hour=8)  # UTC +3 = 5h local
-def atualizar_tokens_expirados():
-    print("⏰ Iniciando atualização automática de tokens...")
-    try:
-        with get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT athlete_id, refresh_token FROM athletes")
-                atletas = cur.fetchall()
-
-        for atleta in atletas:
-            try:
-                data = refresh_token(atleta['refresh_token'])
-                save_athlete(data)
-                print(f"✔ Token atualizado: {data['athlete']['firstname']} {data['athlete']['lastname']}")
-            except Exception as e:
-                print(f"⚠ Erro ao atualizar token do atleta {atleta['athlete_id']}: {str(e)}")
-
-    except Exception as e:
-        print("❌ Erro ao atualizar tokens em massa:", str(e))
 
 # ======= Rota já existente (mantida) =======
 @app.route("/")
