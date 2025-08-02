@@ -194,8 +194,15 @@ def callback():
         if not code:
             return "❌ Erro: código de autorização não encontrado."
 
-        athlete_data = exchange_token(code)  # troca o code por access/refresh tokens
-        save_athlete(athlete_data)           # salva no banco
+        athlete_data = exchange_token(code)
+
+        # ✅ Corrigido: salva separadamente os campos do atleta
+        save_athlete(
+            athlete_data["athlete"]["id"],
+            athlete_data["access_token"],
+            athlete_data["refresh_token"],
+            athlete_data["expires_at"]
+        )
 
         return """
         <h2>✅ Tudo certo!</h2>
