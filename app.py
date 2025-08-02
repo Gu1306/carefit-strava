@@ -174,12 +174,21 @@ def ver_atividades(token):
         html_content += "</table>"
 
         html_content += f"""
-        <br><form method="post" action="/baixar-txt" target="_blank">
-            <input type="hidden" name="dados" value="{dados_codificados}">
-            <input type="hidden" name="filename" value="{nome_arquivo}">
-            <button type="submit">📄 Baixar Treinos Completos (.txt)</button>
+        <br>
+        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
+            <input type="hidden" name="dados" value="{dados_1_200}">
+            <input type="hidden" name="filename" value="{nome_1_200}">
+            <button type="submit">📄 Treinos 1 a 200</button>
+        </form>
+
+        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block;">
+            <input type="hidden" name="dados" value="{dados_201_400}">
+            <input type="hidden" name="filename" value="{nome_201_400}">
+            <button type="submit">📄 Treinos 201 a 400</button>
         </form>
         """
+
+
         return render_template_string(html_content)
 
     except Exception as e:
