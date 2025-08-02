@@ -173,21 +173,39 @@ def ver_atividades(token):
             html_content += f"<tr><td>{nome}</td><td>{dist_km}</td><td>{pace_str}</td><td>{duracao}</td><td>{altimetria}</td></tr>"
         html_content += "</table>"
 
-        html_content += f"""
+                html_content += f"""
         <br>
+
         <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
             <input type="hidden" name="dados" value="{dados_1_200}">
             <input type="hidden" name="filename" value="{nome_1_200}">
             <button type="submit">📄 Treinos 1 a 200</button>
         </form>
 
-        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block;">
+        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
             <input type="hidden" name="dados" value="{dados_201_400}">
             <input type="hidden" name="filename" value="{nome_201_400}">
             <button type="submit">📄 Treinos 201 a 400</button>
         </form>
-        """
 
+        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
+            <input type="hidden" name="dados" value="{dados_401_600}">
+            <input type="hidden" name="filename" value="{nome_401_600}">
+            <button type="submit">📄 Treinos 401 a 600</button>
+        </form>
+
+        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
+            <input type="hidden" name="dados" value="{dados_601_800}">
+            <input type="hidden" name="filename" value="{nome_601_800}">
+            <button type="submit">📄 Treinos 601 a 800</button>
+        </form>
+
+        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block;">
+            <input type="hidden" name="dados" value="{dados_801_1000}">
+            <input type="hidden" name="filename" value="{nome_801_1000}">
+            <button type="submit">📄 Treinos 801 a 1000</button>
+        </form>
+        """
 
         return render_template_string(html_content)
 
