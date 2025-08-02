@@ -98,14 +98,10 @@ def ver_atividades(token):
                 nome_atleta = f"{html.escape(resultado['firstname'])}_{html.escape(resultado['lastname'])}".replace(" ", "_") if resultado else "atleta"
                 athlete_id = resultado['athlete_id'] if resultado else None
 
-
         # Divide as atividades em duas páginas
         atividade_strs = [str(a) for a in atividades]
-txt_1_200 = "\n\n".join(atividade_strs[:200])
-txt_201_400 = "\n\n".join(atividade_strs[200:400])
-
-
-      
+        txt_1_200 = "\n\n".join(atividade_strs[:200])
+        txt_201_400 = "\n\n".join(atividade_strs[200:400])
 
         # Codifica os arquivos
         dados_1_200 = base64.b64encode(txt_1_200.encode("utf-8")).decode("utf-8")
