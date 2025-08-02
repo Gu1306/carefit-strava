@@ -196,13 +196,8 @@ def callback():
 
         athlete_data = exchange_token(code)
 
-        # ✅ Corrigido: salva separadamente os campos do atleta
-        save_athlete(
-            athlete_data["athlete"]["id"],
-            athlete_data["access_token"],
-            athlete_data["refresh_token"],
-            athlete_data["expires_at"]
-        )
+        # ✅ Correção: passar o dicionário completo como espera o db.py
+        save_athlete(athlete_data)
 
         return """
         <h2>✅ Tudo certo!</h2>
