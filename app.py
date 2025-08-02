@@ -173,7 +173,7 @@ def ver_atividades(token):
             html_content += f"<tr><td>{nome}</td><td>{dist_km}</td><td>{pace_str}</td><td>{duracao}</td><td>{altimetria}</td></tr>"
         html_content += "</table>"
 
-                html_content += f"""
+        html_content += f"""
         <br>
 
         <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
@@ -205,7 +205,7 @@ def ver_atividades(token):
             <input type="hidden" name="filename" value="{nome_801_1000}">
             <button type="submit">📄 Treinos 801 a 1000</button>
         </form>
-        """
+        """               
 
         return render_template_string(html_content)
 
