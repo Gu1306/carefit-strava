@@ -101,12 +101,11 @@ def ver_atividades(token):
 
         # Divide as atividades em duas páginas
         atividade_strs = [str(a) for a in atividades]
-        txt_1_200 = "
+txt_1_200 = "\n\n".join(atividade_strs[:200])
+txt_201_400 = "\n\n".join(atividade_strs[200:400])
 
-".join(atividade_strs[:200])
-        txt_201_400 = "
 
-".join(atividade_strs[200:400])
+      
 
         # Codifica os arquivos
         dados_1_200 = base64.b64encode(txt_1_200.encode("utf-8")).decode("utf-8")
