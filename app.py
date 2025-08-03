@@ -98,38 +98,31 @@ def ver_atividades(token):
                 nome_atleta = f"{html.escape(resultado['firstname'])}_{html.escape(resultado['lastname'])}".replace(" ", "_") if resultado else "atleta"
                 athlete_id = resultado['athlete_id'] if resultado else None
 
-        # Divide as atividades em duas páginas
-        atividade_strs = [str(a) for a in atividades]
-        txt_1_200 = "\n\n".join(atividade_strs[:200])
-        txt_201_400 = "\n\n".join(atividade_strs[200:400])
-        txt_401_600 = "\n\n".join(atividade_strs[400:600])
-        txt_601_800 = "\n\n".join(atividade_strs[600:800])
-        txt_801_1000 = "\n\n".join(atividade_strs[800:1000])
+	import json
+        import os
 
-       
+        pasta_saida = "arquivos_json"
+        os.makedirs(pasta_saida, exist_ok=True)
 
+        def salvar_json(nome_arquivo, dados):
+            caminho = os.path.join(pasta_saida, nome_arquivo)
+            with open(caminho, "w", encoding="utf-8") as f:
+                json.dump(dados, f, ensure_ascii=False, indent=2)
 
-        # Codifica os arquivos
-        dados_1_200 = base64.b64encode(txt_1_200.encode("utf-8")).decode("utf-8")
-        dados_201_400 = base64.b64encode(txt_201_400.encode("utf-8")).decode("utf-8")
-        dados_401_600 = base64.b64encode(txt_401_600.encode("utf-8")).decode("utf-8")
-        dados_601_800 = base64.b64encode(txt_601_800.encode("utf-8")).decode("utf-8")
-        dados_801_1000 = base64.b64encode(txt_801_1000.encode("utf-8")).decode("utf-8")
-
-       
-
-
-        # Data e nomes dos arquivos
         data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
-        nome_1_200 = f"{nome_atleta}_treinos_1_a_200_{data_atual}.txt"
-        nome_201_400 = f"{nome_atleta}_treinos_201_a_400_{data_atual}.txt"
-        nome_401_600 = f"{nome_atleta}_treinos_401_a_600_{data_atual}.txt"
-        nome_601_800 = f"{nome_atleta}_treinos_601_a_800_{data_atual}.txt"
-        nome_801_1000 = f"{nome_atleta}_treinos_801_a_1000_{data_atual}.txt"
+        nome_1_200 = f"{nome_atleta}_treinos_1_a_200_{data_atual}.json"
+        nome_201_400 = f"{nome_atleta}_treinos_201_a_400_{data_atual}.json"
+        nome_401_600 = f"{nome_atleta}_treinos_401_a_600_{data_atual}.json"
+        nome_601_800 = f"{nome_atleta}_treinos_601_a_800_{data_atual}.json"
+        nome_801_1000 = f"{nome_atleta}_treinos_801_a_1000_{data_atual}.json"
 
+        salvar_json(nome_1_200, atividades[0:200] + [{"download_datetime": datetime.datetime.now().isoformat()}])
+        salvar_json(nome_201_400, atividades[200:400] + [{"download_datetime": datetime.datetime.now().isoformat()}])
+        salvar_json(nome_401_600, atividades[400:600] + [{"download_datetime": datetime.datetime.now().isoformat()}])
+        salvar_json(nome_601_800, atividades[600:800] + [{"download_datetime": datetime.datetime.now().isoformat()}])
+        salvar_json(nome_801_1000, atividades[800:1000] + [{"download_datetime": datetime.datetime.now().isoformat()}])
 
-
-        limite_data = datetime.datetime.now() - datetime.timedelta(days=90)
+ 	limite_data = datetime.datetime.now() - datetime.timedelta(days=90)
         atividades_90dias = [a for a in atividades if datetime.datetime.strptime(a['start_date_local'][:10], "%Y-%m-%d") >= limite_data]
 
         maior_corrida = max((a for a in atividades_90dias if a['type'] == 'Run'), key=lambda x: x['distance'], default=None)
@@ -177,7 +170,7 @@ def ver_atividades(token):
         html_content += "</ul>"
 
         html_content += "<h4>📋 Treinos nos últimos 90 dias</h4>"
-        html_content += "<table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Pace Médio</th><th>Tempo Total</th><th>Altimetria</th></tr>"
+        html_content += "<table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Pace Médio</th><th>Tempo Total</th><th>Altimetria</th></tr><th>Data</th></tr>"
         for a in atividades_90dias:
             nome = html.escape(a['name'])
             dist_km = round(a['distance']/1000, 2)
