@@ -259,3 +259,15 @@ def atualizar_tokens_manual():
         return f"✅ Atualização concluída! Tokens atualizados: {total}"
     except Exception as e:
         return f"❌ Erro ao atualizar tokens: {str(e)}"
+
+from flask import send_from_directory
+
+@app.route('/download-json/<filename>')
+@requires_auth
+def download_json(filename):
+    pasta_saida = "arquivos_json"
+    try:
+        return send_from_directory(pasta_saida, filename, as_attachment=True)
+    except FileNotFoundError:
+        return f"❌ Arquivo '{filename}' não encontrado.", 404
+
