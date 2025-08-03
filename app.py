@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template_string, Response
 from flask_apscheduler import APScheduler
 from functools import wraps
 import os
+import json  
 import requests
 from utils import exchange_token, refresh_token
 from db import save_athlete, get_connection
@@ -98,8 +99,6 @@ def ver_atividades(token):
                 nome_atleta = f"{html.escape(resultado['firstname'])}_{html.escape(resultado['lastname'])}".replace(" ", "_") if resultado else "atleta"
                 athlete_id = resultado['athlete_id'] if resultado else None
 
-	import json
-	import os
 
         pasta_saida = "arquivos_json"
         os.makedirs(pasta_saida, exist_ok=True)
@@ -122,7 +121,7 @@ def ver_atividades(token):
         salvar_json(nome_601_800, atividades[600:800] + [{"download_datetime": datetime.datetime.now().isoformat()}])
         salvar_json(nome_801_1000, atividades[800:1000] + [{"download_datetime": datetime.datetime.now().isoformat()}])
 
- 	limite_data = datetime.datetime.now() - datetime.timedelta(days=90)
+        limite_data = datetime.datetime.now() - datetime.timedelta(days=90)
         atividades_90dias = [a for a in atividades if datetime.datetime.strptime(a['start_date_local'][:10], "%Y-%m-%d") >= limite_data]
 
         maior_corrida = max((a for a in atividades_90dias if a['type'] == 'Run'), key=lambda x: x['distance'], default=None)
@@ -135,6 +134,7 @@ def ver_atividades(token):
                 key=lambda x: x['moving_time'],
                 default=None
             )
+
 
         foto_url = athlete_profile.get("profile", "")
         link_strava = f"https://www.strava.com/athletes/{athlete_id}" if athlete_id else "#"
@@ -170,7 +170,7 @@ def ver_atividades(token):
         html_content += "</ul>"
 
         html_content += "<h4>📋 Treinos nos últimos 90 dias</h4>"
-        html_content += "<table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Pace Médio</th><th>Tempo Total</th><th>Altimetria</th></tr><th>Data</th></tr>"
+        html_content += "<table border='1'><tr><th>Nome</th><th>Distância (km)</th><th>Pace Médio</th><th>Tempo Total</th><th>Altimetria</th><th>Data</th></tr>"
         for a in atividades_90dias:
             nome = html.escape(a['name'])
             dist_km = round(a['distance']/1000, 2)
@@ -179,41 +179,34 @@ def ver_atividades(token):
             pace_str = str(datetime.timedelta(seconds=int(pace))) if pace > 0 else '-'
             duracao = str(datetime.timedelta(seconds=moving_time))
             altimetria = a.get('total_elevation_gain', '-')
-            html_content += f"<tr><td>{nome}</td><td>{dist_km}</td><td>{pace_str}</td><td>{duracao}</td><td>{altimetria}</td></tr>"
+            data_atividade = a.get('start_date_local', '')[:10]
+            html_content += f"<tr><td>{nome}</td><td>{dist_km}</td><td>{pace_str}</td><td>{duracao}</td><td>{altimetria}</td><td>{data_atividade}</td></tr>"
+            
         html_content += "</table>"
 
         html_content += f"""
         <br>
 
-        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
-            <input type="hidden" name="dados" value="{dados_1_200}">
-            <input type="hidden" name="filename" value="{nome_1_200}">
-            <button type="submit">📄 Treinos 1 a 200</button>
-        </form>
+	<a href="/download-json/{ nome_1_200 }" target="_blank" style="display:inline-block; margin-right:10px;">
+   	    <button type="button">Treinos 1 a 200 (.json)</button>
+	</a>
 
-        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
-            <input type="hidden" name="dados" value="{dados_201_400}">
-            <input type="hidden" name="filename" value="{nome_201_400}">
-            <button type="submit">📄 Treinos 201 a 400</button>
-        </form>
+	<a href="/download-json/{ nome_201_400 }" target="_blank" style="display:inline-block; margin-right:10px;">
+    	    <button type="button">Treinos 201 a 400 (.json)</button>
+	</a>
 
-        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
-            <input type="hidden" name="dados" value="{dados_401_600}">
-            <input type="hidden" name="filename" value="{nome_401_600}">
-            <button type="submit">📄 Treinos 401 a 600</button>
-        </form>
+	<a href="/download-json/{ nome_401_600 }" target="_blank" style="display:inline-block; margin-right:10px;">
+    	    <button type="button">Treinos 401 a 600 (.json)</button>
+	</a>
 
-        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block; margin-right:10px;">
-            <input type="hidden" name="dados" value="{dados_601_800}">
-            <input type="hidden" name="filename" value="{nome_601_800}">
-            <button type="submit">📄 Treinos 601 a 800</button>
-        </form>
+	<a href="/download-json/{ nome_601_800 }" target="_blank" style="display:inline-block; margin-right:10px;">
+   	    <button type="button">Treinos 601 a 800 (.json)</button>
+	</a>
 
-        <form method="post" action="/baixar-txt" target="_blank" style="display:inline-block;">
-            <input type="hidden" name="dados" value="{dados_801_1000}">
-            <input type="hidden" name="filename" value="{nome_801_1000}">
-            <button type="submit">📄 Treinos 801 a 1000</button>
-        </form>
+	<a href="/download-json/{ nome_801_1000 }" target="_blank" style="display:inline-block;">
+    		<button type="button">Treinos 801 a 1000 (.json)</button>
+	</a>
+        
         """               
 
         return render_template_string(html_content)
