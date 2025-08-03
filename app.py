@@ -99,7 +99,7 @@ def ver_atividades(token):
                 athlete_id = resultado['athlete_id'] if resultado else None
 
 	import json
-        import os
+	import os
 
         pasta_saida = "arquivos_json"
         os.makedirs(pasta_saida, exist_ok=True)
