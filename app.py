@@ -23,8 +23,12 @@ scheduler.start()
 def job_6h():
     atualizar_tokens_expirados()
 
-@scheduler.task("cron", id="tokens_13h", hour=13, timezone="America/Sao_Paulo")
-def job_13h():
+@scheduler.task("cron", id="tokens_11h", hour=11, timezone="America/Sao_Paulo")
+def job_11h():
+    atualizar_tokens_expirados()
+	
+@scheduler.task("cron", id="tokens_16h", hour=16, timezone="America/Sao_Paulo")
+def job_16h():
     atualizar_tokens_expirados()
 
 def check_auth(password):
